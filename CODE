@@ -1,0 +1,121 @@
+/*
+  Smart Dustbin with Automatic Waste Separation
+  ---------------------------------------------
+  Description:
+  This project automatically separates dry and wet waste using a moisture sensor.
+  An IR sensor detects the presence of waste, and a servo motor rotates to direct
+  the waste into the correct bin (wet or dry). The OLED display shows system
+  status messages.
+
+  Built & Developed by: Md Mizanur Rahman
+*/
+
+#include <Servo.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
+
+Servo myservo;
+
+int moisturePin = A0;
+int irSensorPin = 2;
+int moistureValue = 0;
+int irState = 0;
+
+void setup() {
+  Serial.begin(9600);
+  myservo.attach(9);
+  pinMode(irSensorPin, INPUT);
+
+  // Initialize OLED Display
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+    Serial.println("OLED not found");
+    for (;;);
+  }
+
+  // Welcome Screen
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.setCursor(10, 10);
+  display.println("SMART DUSTBIN");
+  display.setTextSize(1);
+  display.setCursor(5, 30);
+  display.println("Built & Developed by:");
+  display.setTextSize(1);
+  display.setCursor(20, 45);
+  display.println("Mizanur Rahman");
+  display.display();
+  delay(3000);
+
+  myservo.write(90); // Neutral position
+}
+
+void loop() {
+  irState = digitalRead(irSensorPin);
+
+  if (irState == LOW) { // Adjust if your sensor outputs HIGH when triggered
+    // Waste detected → Start detection process
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setTextColor(WHITE);
+    display.setCursor(10, 20);
+    display.println("Detecting Waste...");
+    display.display();
+    delay(1000);
+
+    // Read moisture sensor
+    moistureValue = analogRead(moisturePin);
+    Serial.print("Moisture Value: ");
+    Serial.println(moistureValue);
+
+    if (moistureValue < 900) { // Wet waste
+      display.clearDisplay();
+      display.setCursor(10, 25);
+      display.println("Wet Waste Detected!");
+      display.display();
+
+      myservo.write(30); // Rotate left - Wet chamber
+      delay(2000);
+    } else { // Dry waste
+      display.clearDisplay();
+      display.setCursor(10, 25);
+      display.println("Dry Waste Detected!");
+      display.display();
+
+      myservo.write(150); // Rotate right - Dry chamber
+      delay(2000);
+    }
+
+    // Return to neutral
+    myservo.write(90);
+    display.clearDisplay();
+    display.setTextSize(2);
+    display.setCursor(10, 25);
+    display.println("Thank You!");
+    display.display();
+    delay(2000);
+  }
+  else {
+    // Idle mode when no object detected
+    myservo.write(90);
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setTextColor(WHITE);
+    display.setCursor(25, 10);
+    display.println("SMART DUSTBIN");
+    display.setTextSize(2);
+    display.setCursor(25, 30);
+    display.println("USE ME");
+    display.setTextSize(1);
+    display.setCursor(15, 55);
+    display.println("By Mizanur Rahman");
+    display.display();
+  }
+
+  delay(200); // Stability delay
+}
